@@ -144,6 +144,16 @@
         editor.setSelection(new monaco.Range(line, 0, line, end));
     });
 
+    function cssVar(name: string): string | undefined {
+        try {
+            return typeof document !== "undefined"
+                ? getComputedStyle(document.documentElement).getPropertyValue(name).trim() || undefined
+                : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
     const themes: Record<string, editor.IStandaloneThemeData> = {
         dark: {
             base: "vs-dark",
@@ -153,7 +163,7 @@
             ],
             colors: {
                 "minimap.background": "#161822",
-                "diffEditor.insertedLineBackground": "#029E734D",
+                "diffEditor.insertedLineBackground": cssVar("--ks-background-additionLine") ?? "#029E734D",
             }
         },
         light: {
@@ -169,11 +179,10 @@
                 "editorLineNumber.foreground": "#444444",
                 "editor.selectionBackground": "#E8E5FF",
                 "editor.wordHighlightBackground": "#E8E5FF",
+                "diffEditor.insertedLineBackground": cssVar("--ks-background-additionLine") ?? "#BEEFE2",
             }
         }
     };
-
-    export type EditorOptions = monaco.editor.IStandaloneEditorConstructionOptions & { renderSideBySide?: boolean };
     const props = withDefaults(defineProps<{
         path?: string,
         original?: string,
