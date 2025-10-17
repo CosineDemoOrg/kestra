@@ -17,6 +17,7 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -55,10 +56,18 @@ public class FlowExecutorExtension implements AfterEachCallback, ParameterResolv
         if (url == null) {
             throw new IllegalArgumentException("Unable to load flow: " + path);
         }
-        LocalFlowRepositoryLoader repositoryLoader = context.getBean(LocalFlowRepositoryLoader.class);
-        TestsUtils.loads(tenantId, repositoryLoader, Objects.requireNonNull(url));
 
+        // Parse the flow first to know its namespace and id
         Flow flow = YamlParser.parse(Paths.get(url.toURI()).toFile(), Flow.class);
+
+        // If the flow is not present yet for this tenant, load it; otherwise skip to avoid duplicate creation.
+        FlowRepositoryInterface flowRepository = context.getBean(FlowRepositoryInterface.class);
+        Optional<Flow> existing = flowRepository.findById(tenantId, flow.getNamespace(), flow.getId());
+        if (existing.isEmpty()) {
+            LocalFlowRepositoryLoader repositoryLoader = context.getBean(LocalFlowRepositoryLoader.class);
+            TestsUtils.loads(tenantId, repositoryLoader, Objects.requireNonNull(url));
+        }
+
         TestRunnerUtils runnerUtils = context.getBean(TestRunnerUtils.class);
         return runnerUtils.runOne(tenantId, flow.getNamespace(), flow.getId(), Duration.parse(executeFlow.timeout()));
     }
